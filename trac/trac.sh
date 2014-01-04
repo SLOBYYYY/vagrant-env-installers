@@ -3,7 +3,7 @@ PROJECT_NAME=$2
 
 function installPython {
 	# Install python essentials
-	apt-get install -y build-essential python python-dev python-setuptools python-pip
+	apt-get -y -q install build-essential python python-dev python-setuptools python-pip
 	wget https://bitbucket.org/pypa/setuptools/raw/bootstrap/ez_setup.py -O - | python
 
 

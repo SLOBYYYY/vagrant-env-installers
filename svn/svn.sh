@@ -1,7 +1,10 @@
+# ********************
+# This is NOT finidhed
+# ********************
 function installSVNBasePackages() {
-	apt-get install -y subversion
+	apt-get -y -q install subversion
 	# Install subversion WebDAV apache module
-	apt-get install -y libapache2-svn
+	apt-get -y -q install libapache2-svn
 	# Restart apache to activate new module
 	service apache2 restart
 }

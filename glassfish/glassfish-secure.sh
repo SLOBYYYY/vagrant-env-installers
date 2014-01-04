@@ -9,13 +9,13 @@ ADMIN_PASSWORD="adminPassword"
 MASTER_PASSWORD="masterPassword"
 GLASSFISH_PATH="/opt/glassfish/glassfish"
 
-setupUsers() {
+function setupUsers() {
 	# Create a system level glasfish user and group. System user means that UID 
 	# and GID are below 1000
 	adduser --system --group --home /home/glassfish --shell /bin/bash glassfish
 }
 
-setupEnvVariables() { # Set java env variables
+function setupEnvVariables() { # Set java env variables
 	BASHRC_FILE=/home/vagrant/.bashrc
 	JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64
 	echo "export JAVA_HOME=$JAVA_HOME" >> $BASHRC_FILE
@@ -34,12 +34,11 @@ setupEnvVariables() { # Set java env variables
 	echo "export AS_JAVA=$JAVA_HOME" >> $BASHRC_FILE
 }
 
-bootstrapSystem() {
-	sudo apt-get -y -q update
-	sudo apt-get -y -q install unzip vim openjdk-7-jdk 
+function bootstrapSystem() {
+	apt-get -y -q install unzip openjdk-7-jdk 
 }
 
-getGlassfish() {
+function getGlassfish() {
 	GF_FILE_NAME="glassfish-4.0.zip"
 	GF_WEB_LINK="http://download.java.net/glassfish/4.0/release/${GF_FILE_NAME}"
 	TEMP_LOCATION=/tmp/${GF_FILE_NAME}
@@ -54,13 +53,13 @@ getGlassfish() {
 	fi
 }
 
-unpackGlassfish() {
+function unpackGlassfish() {
 	unzip /tmp/glassfish-4.0.zip -d ${GF_UNZIP_TARGET}
 	# Rename the zip
 	mv $GF_UNZIP_TARGET/glassfish4 $GF_UNZIP_TARGET/glassfish
 }
 
-modifyFolderPermissions() {
+function modifyFolderPermissions() {
 	# Make the owner of the directory glassfish:glassfish
 	chown -R glassfish:glassfish /opt/glassfish
 
@@ -75,7 +74,7 @@ modifyFolderPermissions() {
 	chmod -R o-w /opt/glassfish/glassfish/domains/domain1/autodeploy/
 }
 
-changePasswords() {
+function changePasswords() {
 	su - glassfish -c "tar cf passwords.orig.tar $GLASSFISH_PATH/domains/domain1/config/domain-passwords $GLASSFISH_PATH/domains/domain1/config/keystore.jks $GLASSFISH_PATH/domains/domain1/config/cacerts.jks"
 
 	# Change default master password
@@ -94,13 +93,13 @@ changePasswords() {
 	su - glassfish -c "echo \"AS_ADMIN_MASTERPASSWORD=$MASTER_PASSWORD\" >> $PASSWORD_FILE"
 }
 
-generatePassFile() {
+function generatePassFile() {
 	# Login, thus create a file ~/.gfclient/pass storing the login information
 	# NOT WORKING --> It does not accept piped answers for interactive questions
 	su - glassfish -c "echo -e \"\nadmin$ADMIN_PASSWORD\n\" | $ASADMIN login"
 }
 
-updateCertificates() {
+function updateCertificates() {
 	SERVER_DOMAIN_NAME="vps.dev"
 	ORGANIZATION_UNIT="SomeOrganizationUnit"
 	ORGANIZATION="SomeOrganization"
@@ -135,17 +134,17 @@ updateCertificates() {
 	rm $GLASSFISH_PATH/s1as.cert $GLASSFISH_PATH/glassfish-instance.cert
 }
 
-enableRemoteAccess() {
+function enableRemoteAccess() {
 	su - glassfish -c "$ASADMIN --user admin --passwordfile $PASSWORD_FILE set server-config.network-config.protocols.protocol.admin-listener.security-enabled=true"
 	su - glassfish -c "$ASADMIN --user admin --passwordfile $PASSWORD_FILE enable-secure-admin"
 }
 
-restartGlassfish() {
+function restartGlassfish() {
 	$ASADMIN --user admin --passwordfile $PASSWORD_FILE stop-domain
 	$ASADMIN --user admin --passwordfile $PASSWORD_FILE start-domain
 }
 
-obfuscateHTMLHeaders() {
+function obfuscateHTMLHeaders() {
 	# Removes HTML headers like "X-Powered-by" signaling the client that it's a glassfish server
 	su - glassfish -c "$ASADMIN --user admin --passwordfile $PASSWORD_FILE create-jvm-options -Dproduct.name="
 	su - glassfish -c "$ASADMIN --user admin --passwordfile $PASSWORD_FILE set server.network-config.protocols.protocol.http-listener-1.http.xpowered-by=false"
@@ -153,14 +152,19 @@ obfuscateHTMLHeaders() {
 	su - glassfish -c "$ASADMIN --user admin --passwordfile $PASSWORD_FILE set server.network-config.protocols.protocol.admin-listener.http.xpowered-by=false"
 }
 
-setupUsers
-bootstrapSystem
-setupEnvVariables
-getGlassfish
-unpackGlassfish
-modifyFolderPermissions
-changePasswords
-#generatePassFile
-updateCertificates
-enableRemoteAccess
-obfuscateHTMLHeaders
+function installGlassfish() {
+	if [ ! -d "${GF_UNZIP_TARGET}glassfish4" ]; then
+		# If glassfish is not installed
+		setupUsers
+		bootstrapSystem
+		setupEnvVariables
+		getGlassfish
+		unpackGlassfish
+		modifyFolderPermissions
+		changePasswords
+		#generatePassFile
+		updateCertificates
+		enableRemoteAccess
+		obfuscateHTMLHeaders
+	fi
+}
